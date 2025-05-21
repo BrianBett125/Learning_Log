@@ -68,14 +68,30 @@ Follow these steps to get a local copy up and running:
     ```bash
     http://127.0.0.1:8000/
 
- 🧪 Optional: Create a Superuser (for Admin Access)
+### 🧪 Optional: Create a Superuser (for Admin Access)
 
-**If you'd like to access the Django admin panel**:
+**If you'd like to access the Django admin panel**, run the following command:
 
+```bash
 python manage.py createsuperuser
 
-**Then log in at**:
+## 📌 Future Plans
 
-http://127.0.0.1:8000/admin/
+- 🔍 Add search functionality across topics and entries.
+- 📝 Implement rich-text or markdown support for entries.
+- 🎨 Improve the UI with responsive design and better styling.
+- 🏷️ Add tagging or categorization for topics.
+- 🔌 Create REST API endpoints using Django REST Framework.
+- ✅ Add unit and integration tests.
+
+---
+
+## 🤝 Contributions
+
+This is a personal learning project, but contributions, suggestions, and feedback are welcome!
+
+Feel free to open an issue or submit a pull request.
+
+
 
 
