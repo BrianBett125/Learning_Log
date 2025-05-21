@@ -1,6 +1,6 @@
 # Learning Log
 
-**Learning Log** is a personal web application that allows users to track and document their learning journeys. Built with **Python** and **Django**, this app enables users to create topics they're interested in and log entries as they explore each topic further.
+**Learning Log** is a web application that allows users to track and document their learning journeys. Built with **Python** and **Django**, this app enables users to create topics they're interested in and log entries as they explore each topic further.
 
 ## 🚧 Project Status
 
