@@ -88,7 +88,7 @@ python manage.py createsuperuser
 
 ## 🤝 Contributions
 
-This is a personal learning project, but contributions, suggestions, and feedback are welcome!
+This is a personal project, but contributions, suggestions, and feedback are welcome!
 
 Feel free to open an issue or submit a pull request.
 
