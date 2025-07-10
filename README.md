@@ -91,3 +91,21 @@ python manage.py createsuperuser
 This is a personal project, but contributions, suggestions, and feedback are welcome!
 
 Feel free to open an issue or submit a pull request.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
