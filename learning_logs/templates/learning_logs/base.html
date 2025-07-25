@@ -6,6 +6,7 @@
 {% if user.is_authenticated %}
   <span>Hello, {{ user.username }}.</span>
 {% else %}
+   <a href="{% url 'accounts:register' %}">Register</a> -
   <a href="{% url 'accounts:login' %}">Log in</a>
 {% endif %}
 </p>
