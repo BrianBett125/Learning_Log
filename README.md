@@ -1,94 +1,198 @@
-# Learning Log
+# 📘 Learning Log
 
-**Learning Log** is a web application that allows users to track and document their learning journeys. Built with **Python** and **Django**, this app enables users to create topics they're interested in and log entries as they explore each topic further.
-
-## 🚧 Project Status
-
-This project is currently in active development. Core features are being implemented and refined.
-
-## 🧠 Features
-
-- User authentication: registration, login, and logout.
-- Create and manage **learning topics**.
-- Add **journal entries** for each topic to document what you’re learning.
-- Edit and view past entries.
-- Clean, user-friendly interface.
-
-## 🔧 Tech Stack
-
-- **Backend:** Python, Django
-- **Frontend:** HTML, CSS (with potential for future enhancements using Bootstrap or JavaScript frameworks)
-- **Database:** SQLite (default for Django, subject to change)
-- **Version Control:** Git
-
-## 🗂️ Project Structure
-
-```bash
-learning_log/
-│
-├── ll_project/           # Project configuration and settings
-│
-├── learning_logs/        # Main app containing models, views, URLs, templates
-│
-├── templates/            # HTML templates
-│
-├── static/               # Static files (CSS, images, JS)
-│
-├── db.sqlite3            # SQLite database (for development)
-│
-└── manage.py             # Django management script
-
-## 🚀 Installation
-
-Follow these steps to get a local copy up and running:
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-username/learning_log.git
-   cd learning_log
-
-2. **Set up a virtual environment and activate it**:
-   ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows use: venv\Scripts\activate
-
-3. **Install dependencies**:
-   ```bash
-    pip install -r requirements.txt
-
-4. **Run database migrations**:
-   ```bash
-    python manage.py migrate
-
-5. **Start the development server**:
-   ```bash
-    python manage.py runserver
-
-6. **python manage.py runserver**:
-    ```bash
-    http://127.0.0.1:8000/
-
-### 🧪 Optional: Create a Superuser (for Admin Access)
-
-**If you'd like to access the Django admin panel**, run the following command:
-
-```bash
-python manage.py createsuperuser
-
-## 📌 Future Plans
-
-- 🔍 Add search functionality across topics and entries.
-- 📝 Implement rich-text or markdown support for entries.
-- 🎨 Improve the UI with responsive design and better styling.
-- 🏷️ Add tagging or categorization for topics.
-- 🔌 Create REST API endpoints using Django REST Framework.
-- ✅ Add unit and integration tests.
+Learning Log is a Django-based web application that enables users to track their learning journey by organizing topics and recording structured entries over time.
 
 ---
 
-## 🤝 Contributions
+## 🚀 Overview
 
-This is a personal project, but contributions, suggestions, and feedback are welcome!
+This application allows users to:
 
-Feel free to open an issue or submit a pull request.
+* Create learning topics
+* Log entries under each topic
+* Track progress over time
+* Manage and edit previous learning records
 
+It is designed as a minimal but extensible system that can evolve into a full learning management or knowledge-tracking platform.
+
+---
+
+## 🧠 Core Features
+
+* 🔐 User authentication (register, login, logout)
+* 📂 Topic management (create, update, delete)
+* 📝 Entry logging per topic
+* ✏️ Edit and review past entries
+* 🎨 Simple UI (Bootstrap-enabled)
+
+---
+
+## 🏗️ Tech Stack
+
+| Layer     | Technology           |
+| --------- | -------------------- |
+| Backend   | Python, Django       |
+| Frontend  | HTML, CSS, Bootstrap |
+| Database  | SQLite (default)     |
+| Dev Tools | Git, Virtualenv      |
+
+---
+
+## 📁 Project Structure
+
+```
+learning_log/
+│
+├── ll_project/        # Django project settings
+├── learning_logs/     # Core application (models, views, urls)
+├── templates/         # HTML templates
+├── static/            # CSS, JS, images
+├── manage.py
+└── requirements.txt
+```
+
+---
+
+## ⚙️ Setup & Installation
+
+### 1. Clone Repository
+
+```
+git clone https://github.com/<your-username>/learning_log.git
+cd learning_log
+```
+
+---
+
+### 2. Create Virtual Environment
+
+```
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Windows:
+
+```
+venv\Scripts\activate
+```
+
+---
+
+### 3. Install Dependencies
+
+```
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+> If you encounter missing packages:
+
+```
+pip install django django-bootstrap5
+```
+
+---
+
+### 4. Apply Migrations
+
+```
+python manage.py migrate
+```
+
+---
+
+### 5. Create Superuser (Optional)
+
+```
+python manage.py createsuperuser
+```
+
+---
+
+### 6. Run Development Server
+
+```
+python manage.py runserver
+```
+
+Open in browser:
+
+```
+http://127.0.0.1:8000/
+```
+
+Admin panel:
+
+```
+http://127.0.0.1:8000/admin/
+```
+
+---
+
+## ⚠️ Troubleshooting
+
+### ModuleNotFoundError
+
+```
+ModuleNotFoundError: No module named 'X'
+```
+
+Fix:
+
+```
+pip install X
+```
+
+---
+
+### Port Already in Use
+
+```
+python manage.py runserver 8001
+```
+
+---
+
+### Python Not Found
+
+```
+python3 manage.py runserver
+```
+
+---
+
+## 🔮 Roadmap
+
+* 🔍 Full-text search for topics and entries
+* 🏷️ Tagging system
+* 📝 Markdown / rich text editor
+* 🔌 REST API (Django REST Framework)
+* 🎨 Improved UI/UX (responsive design)
+* 🧪 Unit & integration testing
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome.
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit changes
+4. Submit a pull request
+
+---
+
+## 📄 License
+
+This project is open-source and available under the MIT License.
+
+---
+
+## 👨‍💻 Author
+
+Brian Bett
+Software Engineer | Python | Django | AI Enthusiast
+
+---
