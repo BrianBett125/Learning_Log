@@ -4,6 +4,7 @@ python-dotenv==1.2.4
 
 # Cache and queue backend (Redis). Django's built-in RedisCache needs it.
 redis==8.2.0
+celery==5.5.3
 
 # Testing
 pytest==9.2.0

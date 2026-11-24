@@ -138,6 +138,35 @@ CACHES = {
 }
 
 
+# Background work
+#
+# Celery uses the same Redis service as the cache, but its connection is a
+# separate infrastructure concern. Operators can point workers at a dedicated
+# broker with CELERY_BROKER_URL without changing application code. Results are
+# deliberately not persisted: the tasks introduced in this phase are
+# fire-and-forget, and later phases can add durable task state only when a user
+# workflow needs it.
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL') or os.environ.get(
+    'REDIS_URL', 'redis://127.0.0.1:6379/0'
+)
+CELERY_RESULT_BACKEND = None
+CELERY_TASK_IGNORE_RESULT = True
+
+# Beat has no application schedule yet. Phase 11 replaces this empty mapping
+# with schedules resolved from ScheduleConfig rows, rather than hardcoding
+# product cadence in settings.
+CELERY_BEAT_SCHEDULE = {}
+
+# Tests opt into eager execution with override_settings; production and local
+# workers always queue work out of process unless an operator explicitly sets
+# this diagnostic switch.
+CELERY_TASK_ALWAYS_EAGER = (
+    os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False').strip().lower()
+    in {'true', '1', 'yes', 'on'}
+)
+CELERY_TASK_EAGER_PROPAGATES = True
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 

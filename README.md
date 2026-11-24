@@ -43,7 +43,8 @@ server-side on every view, so one user can never read or modify another's data.
 | Backend    | Django 5.2 (LTS)                                 |
 | Frontend   | Bootstrap 5 via `django-bootstrap5`              |
 | Database   | PostgreSQL 17 with `pgvector` (Docker locally, Scalingo in production) |
-| Cache      | Redis 7 (Docker locally, Scalingo addon in production) |
+| Cache / queue | Redis 7 (Docker locally, Scalingo addon in production) |
+| Background work | Celery worker + Celery beat |
 | Testing    | `pytest` + `pytest-django` on PostgreSQL         |
 | Deployment | Scalingo (gunicorn, WhiteNoise, `dj-database-url`) |
 
@@ -60,7 +61,7 @@ Maarifa/ (repository checkout directory)
 ├── pytest.ini                 # pytest configuration
 ├── conftest.py                # test bootstrap (supplies a throwaway SECRET_KEY)
 ├── docker-compose.yml         # local PostgreSQL 17 + pgvector, and Redis
-├── Procfile                   # Scalingo process definitions (web, postdeploy)
+├── Procfile                   # Scalingo process definitions (web, worker, beat, postdeploy)
 ├── .python-version            # Python version Scalingo builds with
 ├── .env.example               # template for local configuration
 ├── reference-inventory.md     # Phase 0 audit of the reference implementation
@@ -70,6 +71,7 @@ Maarifa/ (repository checkout directory)
 │   └── postgres/
 │       └── init.sql           # enables the pgvector extension on first start
 ├── ll_project/                # project settings and root URL configuration
+│   ├── celery.py               # Celery app; schedules are DB-driven in Phase 11
 │   ├── settings.py
 │   ├── health.py              # liveness probes for runtime dependencies
 │   ├── urls.py
@@ -203,6 +205,7 @@ deployment. See [.env.example](.env.example).
 | `DJANGO_ALLOWED_HOSTS` | When `DEBUG=False` | empty   | Comma-separated hostnames the app will serve.                                                              |
 | `DATABASE_URL`         | No              | the Docker service (`postgres://maarifa:maarifa@127.0.0.1:5433/maarifa`) | PostgreSQL connection string, read in every environment. Scalingo injects it automatically. |
 | `REDIS_URL`            | No              | the Docker service (`redis://127.0.0.1:6379/0`) | Redis connection string for the cache, read in every environment. Scalingo injects it automatically. |
+| `CELERY_BROKER_URL`    | No              | `REDIS_URL` | Optional dedicated Redis URL for Celery workers and beat. |
 | `STACK`                | Scalingo only   | —       | Set by Scalingo's buildpack. Its presence activates the Scalingo static-file configuration and requires TLS (`sslmode=require`) to the database. |
 
 ---
@@ -216,6 +219,19 @@ services before running any management command:
 ```
 docker compose up -d
 ```
+
+### Background worker and scheduler
+
+In separate terminals, start the processes that consume queued work and manage
+schedules:
+
+```
+celery -A ll_project worker --loglevel=INFO
+celery -A ll_project beat --loglevel=INFO
+```
+
+Beat intentionally has no product schedule in this phase. Phase 11 will load
+its entries from database-backed `ScheduleConfig` rows.
 
 Migrations are committed to the repository. Apply them with:
 
