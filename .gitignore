@@ -1,0 +1,49 @@
+# --- Secrets and environment ---
+# Real values live in .env (never committed). The template .env.example is kept.
+.env
+.env.*
+!.env.example
+
+# --- Local planning / agent notes ---
+# Kept out of version control; README.md stays tracked as public docs.
+CLAUDE.md
+plan.md
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Virtual environments ---
+.venv/
+venv/
+ll_env/
+env/
+ENV/
+
+# --- Django ---
+*.log
+db.sqlite3
+db.sqlite3-journal
+/staticfiles/
+/media/
+
+# --- Test / tool caches ---
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
