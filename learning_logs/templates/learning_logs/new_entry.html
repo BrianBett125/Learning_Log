@@ -1,13 +1,14 @@
-i{% extends "learning_logs/base.html" %}
+{% extends "learning_logs/base.html" %}
 
 {% block content %}
-  <p><a href="{% url 'learning_logs:topic' topic.id %}">{{ topic }}</a></p>
-  <p>Add a new entry:</p>
 
-  <form action="{% url 'learning_logs:new_entry' topic.id %}" method="post">
+  <p><a href="{% url 'learning_logs:topic' topic.id %}">{{ topic }}</a></p>
+
+  <p>Add a new entry:</p>
+  <form action="{% url 'learning_logs:new_entry' topic.id %}" method='post'>
     {% csrf_token %}
     {{ form.as_div }}
-    <button type="submit">Add entry</button>
+    <button name='submit'>Add entry</button>
   </form>
-{% endblock content %}
 
+{% endblock content %}

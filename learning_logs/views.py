@@ -1,6 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import Http404
 from .models import Topic, Entry
 from .forms import TopicForm,EntryForm
 
@@ -47,7 +46,8 @@ def new_topic(request):
 @login_required
 def new_entry(request, topic_id):
     """Add a new entry for a particular topic."""
-    topic = Topic.objects.get(id=topic_id)
+    # Scope to the owner: another user's topic and a nonexistent id both 404.
+    topic = get_object_or_404(Topic, id=topic_id, owner=request.user)
 
     if request.method != 'POST':
         # No data submitted; create a blank form.
@@ -68,10 +68,10 @@ def new_entry(request, topic_id):
 @login_required
 def edit_entry(request, entry_id):
     """Edit an existing entry."""
-    entry = Entry.objects.get(id=entry_id)
+    # Scope through the topic owner: another user's entry and a nonexistent id
+    # both 404, so the view never confirms that a private entry exists.
+    entry = get_object_or_404(Entry, id=entry_id, topic__owner=request.user)
     topic = entry.topic
-    if topic.owner != request.user:
-        raise Http404
 
     if request.method != 'POST':
         # Initial request; pre-fill form with the current entry.
