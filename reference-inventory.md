@@ -251,7 +251,7 @@ Location: `reference/screenshots/` (in the repo workspace; commit decision in §
 
 How they were produced and verified (so the baseline is reproducible, not trusted):
 
-- Driver: headless Google Chrome 158 via `puppeteer-core` (installed under `/tmp/ll-shots`, not the repo). Public pages captured in an anonymous browser context, private pages in a logged-in `demo` context — so the visitor navbar (Register/Log in) is what `home/login/register` show.
+- Driver: headless Google Chrome 158 via `puppeteer-core` (a throwaway driver kept outside the repo, not committed). Public pages captured in an anonymous browser context, private pages in a logged-in `demo` context — so the visitor navbar (Register/Log in) is what `home/login/register` show.
 - Verification (three passes): (1) every page reported the Bootstrap 5.3.8 stylesheet applied, checked by computed style, navbar `bg-light` = `rgb(248,249,250)` and `.btn-primary` = `rgb(13,110,253)`; (2) every PNG is non-trivial (sampled distinct bytes ≥ 100, correct 1280×900 / 390×844 dimensions); (3) a content assertion confirmed expected strings per page (`Track your learning.`, `Log in to your account.`, topic names, form buttons) and no traceback/error page. All passed. Raw results in `reference/screenshots/capture-manifest.json`.
 - The screenshots reflect the reference's **live CDN Bootstrap** (`bootstrap@5.3.8` from jsDelivr at capture time) even though the book's lockfile pins `django-bootstrap5==21.3` (see §6.2) — i.e. current Bootstrap-5 styling, which is what the plan asks for.
 
@@ -270,4 +270,4 @@ cd /tmp/ll_ref
 
 Login with the seeded demo account: username `demo`, password `demopass123` (local throwaway only).
 
-Screenshot re-capture: the headless-Chrome pipeline that produced §8 is `node /tmp/ll-shots/capture.js` (driver in `/tmp/ll-shots`, needs the server above running and the `demo` account). It re-verifies Bootstrap applied and asserts each page's content, then writes `reference/screenshots/`.
+Screenshot re-capture: reproduce the §8 baseline with headless Chrome plus `puppeteer-core` against the server above and the `demo` account. Log in for the private pages, use a fresh context for the public pages, assert each page's content and that Bootstrap applied, then write `reference/screenshots/`.
