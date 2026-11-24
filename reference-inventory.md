@@ -275,6 +275,30 @@ Goal: every page must visually match the reference; markup/CSS only, no new feat
 
 ---
 
+## 10. Phase 8 — quality assurance results (2026-11-24)
+
+Goal (plan §8): run the full suite and the system checks, walk every main flow as two separate users, check keyboard/labels/focus/mobile, and review security settings and dependency versions.
+
+**Deterministic checks**
+
+- `pytest -q` → **137 passed** (104 at the end of Phase 7; +33 this phase).
+- `manage.py check` → no issues (0 silenced).
+- `manage.py check --deploy` → 5 warnings, all production-hardening defaults deferred to Phase 9: `security.W004` (HSTS), `W008` (SSL redirect), `W012` (`SESSION_COOKIE_SECURE`), `W016` (`CSRF_COOKIE_SECURE`), `W018` (`DEBUG` may be True).
+
+**Three independent verifier passes** (separate throwaway copies, seeded `alice`/`bob`, run in parallel; reports under `/tmp/ll-phase8/{security,isolation,a11y}/REPORT.md`)
+
+1. **Security and dependencies — PASS, with one history finding.** CSRF is enforced on all six state-changing endpoints (a token-less POST is 403, a token-carrying POST succeeds) verified both with `Client(enforce_csrf_checks=True)` and against a live server with `curl`; user content is escaped and inert across the five XSS payloads the unit tests define; `MIDDLEWARE` carries `SecurityMiddleware`, `CsrfViewMiddleware` and `XFrameOptionsMiddleware`; `requirements.txt` matches `pip freeze`, `pip check` is clean, Django is 5.2.19 LTS with no known advisories.
+2. **Two-user isolation — PASS on all 8 acceptance items.** Anonymous visitors are redirected; `alice` sees only her topics; a cross-user topic or entry id returns 404 (get and post); a crafted POST into `bob`'s topic returns 404 and creates nothing (entry count stays 1, zero injected rows); each user's own flows work; logout is POST-only (GET 405).
+3. **Accessibility (axe-core 4.14.1, 8 pages x 2 viewports) — 24 violation instances on the untouched reference markup**: 6 CRITICAL (unlabelled `#id_text` on the three form pages), 6 SERIOUS (colour contrast on `Log out` 4.44:1 and `edit entry` 4.24:1), 12 MODERATE (missing `<h1>` on 5 pages, heading-order on the topic page). Keyboard journey passes: no focus trap, every focusable element shows a visible focus indicator.
+
+**Decision 1 — accessibility.** These defects are inherited byte-for-byte from the reference, and Phase 7 pinned byte-identical visual parity, so most fixes would move pixels. Only the CRITICAL defect was fixed, and only invisibly: `TopicForm`/`EntryForm` now carry an `aria-label` ("Topic text" / "Entry text") on the text widget while the visible label stays empty, so the control has an accessible name and nothing moves on screen. The 18 remaining (SERIOUS contrast + MODERATE headings) are recorded here as **accepted debt inherited from the reference**, not fixed, to hold the parity requirement. A regression test (`learning_logs/tests/test_accessibility.py`) pins that the name is present and that no visible label reappears.
+
+**Decision 2 — committed secret.** A development `SECRET_KEY` (`django-insecure-…`, hardcoded at `ll_project/settings.py:23` in commit `b3c3fd7`) is present in git **history**; it was removed from the working tree in `c43b8aa` and settings now require `DJANGO_SECRET_KEY` from the environment. It was a local development key that never signed production sessions, so it is documented here and **accepted** rather than purged from history (a rewrite would change every commit hash and destroy the existing audit trail).
+
+**Coverage added this phase** (`accounts/tests/test_security.py`, `learning_logs/tests/test_security.py`, `learning_logs/tests/test_accessibility.py`; +33 tests). Before this phase the only CSRF assertions were of the form `assert 'csrfmiddlewaretoken' in html`, which is proof a token is emitted, not that a request without one is refused (Django's test client disables CSRF checks by default), and no test exercised output escaping. The new tests cover: token-less POST rejected with 403 and no side effect on all six endpoints; the issued token accepted; a wrong token rejected while the CSRF cookie is present; topic title escaped on the topics list and the topic page, and entry body escaped on the topic page; stored `{{ 7*7 }}` not re-evaluated as template code; and a stored payload in one user's topic invisible to another (404).
+
+---
+
 ## How to run the reference
 
 ```bash
