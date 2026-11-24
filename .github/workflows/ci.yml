@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint, migrations, and tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: maarifa
+          POSTGRES_PASSWORD: maarifa
+          POSTGRES_DB: maarifa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U maarifa -d maarifa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DJANGO_SECRET_KEY: ci-only-not-a-real-secret-key-9f3c1a7e5b2d8046c9f1a3e7
+      DJANGO_DEBUG: "True"
+      DATABASE_URL: postgres://maarifa:maarifa@127.0.0.1:5432/maarifa
+      REDIS_URL: redis://127.0.0.1:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+      - name: Lint
+        run: ruff check .
+      - name: Check migrations are committed
+        run: python manage.py makemigrations --check --dry-run
+      - name: Run tests
+        run: pytest
+
+  deploy:
+    name: Deploy template
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deployment placeholder
+        run: >-
+          echo "Add provider deployment commands here after production credentials
+          and release approval are configured."
