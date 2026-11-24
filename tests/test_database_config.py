@@ -29,6 +29,14 @@ SECRET_KEY = 'pytest-database-config-key-9f3c1a7e5b2d8046c9f1a3e7'
 # Prints the resolved default database connection as JSON.
 _DUMP_DB = """
 import json
+
+import dotenv
+
+# The test owns the environment. load_dotenv(override=False) would re-inject
+# .env values for any key _db() cleared, so a developer's .env would silently
+# stand in for the settings fallback. Disable it before settings import.
+dotenv.load_dotenv = lambda *a, **k: None
+
 import django
 
 django.setup()

@@ -476,6 +476,91 @@ local Docker database stays reachable).
 
 ---
 
+## 13. Phase 2 — Redis wiring (2026-11-24)
+
+Goal (plan §4, Phase 2): one Redis instance serves the cache now and is ready to
+carry sessions, the Celery broker, and rate-limit counters in later phases; the
+cache is reachable through Django's cache framework; a probe reports whether
+Redis is up.
+
+**`ll_project/settings.py`.** A `CACHES` block was added directly after
+`DATABASES`. The default backend is Django's built-in
+`django.core.cache.backends.redis.RedisCache` (no `django-redis` dependency —
+the built-in backend covers everything Phase 2 needs). `LOCATION` reads
+`REDIS_URL` (falling back via `or`, so an empty string also yields the default)
+to `redis://127.0.0.1:6379/0`, the docker-compose service, so a fresh checkout
+caches after `docker compose up -d`. `KEY_PREFIX='maarifa'` namespaces every key
+so a shared Redis cannot collide. `OPTIONS` sets `socket_connect_timeout` and
+`socket_timeout` (2s each): without them a blackholed Redis (packets dropped, no
+RST) would block on the OS TCP timeout for minutes, so the probe's "reports
+down" would only hold for an instant refusal. Per P0 the URL is infrastructure,
+so it is an env var, never a `Setting` row nor a code branch.
+
+**`ll_project/health.py` (new).** `DependencyHealth` (frozen dataclass: `name`,
+`ok`, `detail`) and `check_cache(alias='default')`, which round-trips a value
+through the configured cache and returns `ok=False` with a short detail on any
+exception rather than raising. The probe never raises — a down dependency is a
+reported state, not an exception — which is what makes it safe to call from a
+health endpoint, an operator command, or a test. The sentinel key carries a
+per-call UUID and a short TTL and is left to expire rather than deleted, so two
+probes running at once (several workers polled by a load balancer) cannot read
+or delete each other's value and report a false down. Phase 24 (monitoring)
+turns these probes into HTTP endpoints; the reusable probe is the Phase 2
+deliverable.
+
+**`docker-compose.yml`.** Added a `redis` service on `redis:7-alpine` with
+persistence disabled (`--save '' --appendonly no`) because it backs a disposable
+cache. Published on `${REDIS_PORT:-6379}:6379` so a local Redis already on 6379
+can be moved. A `redis-cli ping` healthcheck gates readiness, and the compose
+default URL and the settings fallback are kept in lockstep by a gate test.
+
+**`.env.example` / `requirements.txt`.** `REDIS_URL` documented with the same
+default the settings fall back to; `redis==8.2.0` added (the Python client
+Django's `RedisCache` needs).
+
+**Tests.** New `tests/test_cache_config.py` (7 tests): the loaded backend is
+`RedisCache`; `REDIS_URL` is honoured; the unset fallback matches the compose
+service; the key prefix is `maarifa`; the socket timeouts that make the probe
+fail fast are set; the compose service exists and its port matches the fallback;
+the image and healthcheck are pinned. New `tests/test_cache_health.py` (5 tests)
+against real Redis: round-trip and invalidation; a value written by a *separate
+process* is read back (a LocMem cache would lose it, so this proves the cache is
+out-of-process); `check_cache` reports up; `check_cache` reports down without
+raising (the backend's `set` is monkeypatched to raise `ConnectionError`); and
+200 probes across 8 threads all report up (the shared-key race the unique key
+removes — running the old shared-key logic under the same load produced ~95/200
+false downs).
+
+Both config-test helpers (`test_cache_config.py` and `test_database_config.py`)
+run their probe in a fresh interpreter with `dotenv.load_dotenv` neutralised.
+Without that, `load_dotenv(override=False)` re-injected `.env`'s values for the
+keys the test had just cleared, so the "unset → fallback" cases were reading
+`.env` (whose value happens to equal the default on this machine) instead of the
+code default; on a developer's `.env` that pointed elsewhere they would have
+failed falsely. This is the same class of leak §11 fixed for
+`DJANGO_ALLOWED_HOSTS`; diagnosing it here repairs the Phase 1 tests too.
+
+**Decision recorded — no management command.** An interactive `health_check`
+management command was built and removed: Django does not discover management
+commands inside the project package (`ll_project/`) because it is not an
+installed app, so `manage.py health_check` failed with `Unknown command`. Per
+plan §2.2 the operator-facing health *endpoint* belongs to Phase 24 (monitoring),
+so the reusable probe function is the correct Phase 2 shape; the two command
+tests were dropped with it.
+
+**Deterministic results**
+
+- `docker compose up -d` → `db` and `redis` both healthy; the Redis container
+  answers `PING`.
+- Full suite: **165 passed** (153 existing + 12 new), 0 failed, 0 skipped.
+- `manage.py check` → no issues. `manage.py check --deploy --fail-level WARNING`
+  with `DJANGO_DEBUG=False` and a strong key → no issues (0 silenced).
+- Old shared-key probe logic under 8 threads × 25 calls → ~95/200 false downs
+  (a race, so not run-stable); the shipped unique-key probe → 0. The regression
+  test above pins this.
+
+---
+
 ## How to run the reference
 
 ```bash

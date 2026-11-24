@@ -111,6 +111,33 @@ DATABASES = {
 }
 
 
+# Cache
+# https://docs.djangoproject.com/en/5.2/ref/settings/#caches
+#
+# One Redis instance backs the cache now and is ready to also carry sessions,
+# the Celery broker, and rate-limit counters in later phases (plan §1.3). Its URL
+# is infrastructure, so it comes from REDIS_URL — an env var, not a Setting row
+# (P0). When REDIS_URL is unset the default targets the docker-compose service
+# (see docker-compose.yml), so a fresh checkout caches after
+# `docker compose up -d`. The backend is Django's own RedisCache; the
+# third-party django-redis would add a dependency for no feature we need.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL') or 'redis://127.0.0.1:6379/0',
+        'KEY_PREFIX': 'maarifa',
+        'TIMEOUT': 300,
+        # A dependency probe must fail fast. Without socket timeouts a
+        # blackholed Redis (packets dropped, no RST) would block on the OS TCP
+        # timeout — minutes — instead of reporting the cache down promptly.
+        'OPTIONS': {
+            'socket_connect_timeout': 2,
+            'socket_timeout': 2,
+        },
+    },
+}
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 

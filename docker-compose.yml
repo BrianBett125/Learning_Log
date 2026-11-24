@@ -1,12 +1,12 @@
 # Local development services for Maarifa.
 #
-# Start the database before running the app or the test suite:
-#   docker compose up -d db
+# Start the services the app needs before running it or the test suite:
+#   docker compose up -d
 #
-# The app reads its connection from DATABASE_URL (see .env.example). When that
-# variable is unset, ll_project/settings.py falls back to the URL published here,
-# so `docker compose up -d db && python manage.py migrate` works on a clean
-# checkout with no further configuration.
+# The app reads its connections from DATABASE_URL and REDIS_URL (see
+# .env.example). When either variable is unset, ll_project/settings.py falls back
+# to the URL published here, so `docker compose up -d && python manage.py
+# migrate` works on a clean checkout with no further configuration.
 services:
   db:
     # pgvector ships the `vector` extension for later phases (plan §1.3); the
@@ -28,6 +28,22 @@ services:
       test: ["CMD-SHELL", "pg_isready -U maarifa -d maarifa"]
       interval: 5s
       timeout: 5s
+      retries: 10
+
+  redis:
+    # One Redis serves the cache now and is ready for sessions, the Celery broker,
+    # and rate-limit counters in later phases (plan §1.3). Persistence is off: this
+    # backs a cache, so the data is disposable and the container is disposable with
+    # it. The Celery broker and any durable counters arrive in later phases.
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      # Standard port; override with REDIS_PORT if a local Redis already owns 6379.
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
       retries: 10
 
 volumes:

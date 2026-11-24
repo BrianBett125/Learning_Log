@@ -2,6 +2,9 @@ Django==5.2.19
 django-bootstrap5==26.4
 python-dotenv==1.2.4
 
+# Cache and queue backend (Redis). Django's built-in RedisCache needs it.
+redis==8.2.0
+
 # Testing
 pytest==9.2.0
 pytest-django==4.14.0

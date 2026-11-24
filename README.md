@@ -43,6 +43,7 @@ server-side on every view, so one user can never read or modify another's data.
 | Backend    | Django 5.2 (LTS)                                 |
 | Frontend   | Bootstrap 5 via `django-bootstrap5`              |
 | Database   | PostgreSQL 17 with `pgvector` (Docker locally, Scalingo in production) |
+| Cache      | Redis 7 (Docker locally, Scalingo addon in production) |
 | Testing    | `pytest` + `pytest-django` on PostgreSQL         |
 | Deployment | Scalingo (gunicorn, WhiteNoise, `dj-database-url`) |
 
@@ -58,7 +59,7 @@ Maarifa/ (repository checkout directory)
 ├── requirements.txt
 ├── pytest.ini                 # pytest configuration
 ├── conftest.py                # test bootstrap (supplies a throwaway SECRET_KEY)
-├── docker-compose.yml         # local PostgreSQL 17 + pgvector
+├── docker-compose.yml         # local PostgreSQL 17 + pgvector, and Redis
 ├── Procfile                   # Scalingo process definitions (web, postdeploy)
 ├── .python-version            # Python version Scalingo builds with
 ├── .env.example               # template for local configuration
@@ -70,6 +71,7 @@ Maarifa/ (repository checkout directory)
 │       └── init.sql           # enables the pgvector extension on first start
 ├── ll_project/                # project settings and root URL configuration
 │   ├── settings.py
+│   ├── health.py              # liveness probes for runtime dependencies
 │   ├── urls.py
 │   ├── wsgi.py
 │   └── asgi.py
@@ -92,7 +94,9 @@ Maarifa/ (repository checkout directory)
 │   └── screenshots/           # visual baseline captured from the reference app
 └── tests/                     # project-level configuration tests
     ├── test_production_settings.py
-    └── test_database_config.py
+    ├── test_database_config.py
+    ├── test_cache_config.py
+    └── test_cache_health.py
 ```
 
 Templates live inside the app that owns them, not in a top-level `templates/`
@@ -129,18 +133,20 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Start PostgreSQL
+### 4. Start PostgreSQL and Redis
 
-The app runs on PostgreSQL in every environment (there is no SQLite path). Start
-the local database — a PostgreSQL 17 image with `pgvector` — with Docker:
+The app runs on PostgreSQL and Redis in every environment (there is no SQLite
+path, and the cache is Redis). Start both local services — a PostgreSQL 17 image
+with `pgvector`, and Redis 7 — with Docker:
 
 ```
-docker compose up -d db
+docker compose up -d
 ```
 
-This publishes PostgreSQL on host port **5433** (chosen so a system PostgreSQL on
-5432 does not collide). The connection string defaults to that service; set
-`DATABASE_URL` to point somewhere else. Check it is up with:
+PostgreSQL is published on host port **5433** (chosen so a system PostgreSQL on
+5432 does not collide) and Redis on **6379**. The connection strings default to
+those services; set `DATABASE_URL` or `REDIS_URL` to point elsewhere. Check both
+are up with:
 
 ```
 docker compose ps
@@ -157,8 +163,8 @@ python -c "from django.core.management.utils import get_random_secret_key as k; 
 ```
 
 Paste the printed value into `.env` as `DJANGO_SECRET_KEY`. The template already
-sets `DATABASE_URL` to the Docker service above. The real `.env` is git-ignored
-and must never be committed.
+sets `DATABASE_URL` and `REDIS_URL` to the Docker services above. The real
+`.env` is git-ignored and must never be committed.
 
 ### 6. Apply migrations
 
@@ -196,6 +202,7 @@ deployment. See [.env.example](.env.example).
 | `DJANGO_DEBUG`         | No              | `True`  | Set to `False` in production. Turns on HTTPS redirect, HSTS and secure cookies.                           |
 | `DJANGO_ALLOWED_HOSTS` | When `DEBUG=False` | empty   | Comma-separated hostnames the app will serve.                                                              |
 | `DATABASE_URL`         | No              | the Docker service (`postgres://maarifa:maarifa@127.0.0.1:5433/maarifa`) | PostgreSQL connection string, read in every environment. Scalingo injects it automatically. |
+| `REDIS_URL`            | No              | the Docker service (`redis://127.0.0.1:6379/0`) | Redis connection string for the cache, read in every environment. Scalingo injects it automatically. |
 | `STACK`                | Scalingo only   | —       | Set by Scalingo's buildpack. Its presence activates the Scalingo static-file configuration and requires TLS (`sslmode=require`) to the database. |
 
 ---
@@ -204,10 +211,10 @@ deployment. See [.env.example](.env.example).
 
 The database is PostgreSQL everywhere (Docker locally, the Scalingo addon in
 production); the connection string comes from `DATABASE_URL`. Start the local
-database before running any management command:
+services before running any management command:
 
 ```
-docker compose up -d db
+docker compose up -d
 ```
 
 Migrations are committed to the repository. Apply them with:
@@ -231,10 +238,11 @@ Scalingo, `bin/post_deploy.sh` runs `migrate` automatically after each deploy.
 ## ✅ Running the Tests
 
 The suite runs against PostgreSQL (pytest-django builds and drops a throwaway
-`test_maarifa` database), so start the database first:
+`test_maarifa` database) and exercises the Redis cache, so start the services
+first:
 
 ```
-docker compose up -d db
+docker compose up -d
 ```
 
 With the virtual environment active:
@@ -250,8 +258,9 @@ Or without activating it:
 ```
 
 The suite covers models, views, ownership isolation, CSRF and XSS handling,
-accessibility attributes, the production/deployment configuration, and the
-PostgreSQL database configuration.
+accessibility attributes, the production/deployment configuration, the
+PostgreSQL database configuration, and the Redis cache configuration and health
+probe.
 
 Django's own checks:
 
@@ -270,8 +279,9 @@ The repository already contains the files Scalingo needs:
 * `Procfile` — starts gunicorn and runs the post-deploy hook.
 * `bin/post_deploy.sh` — applies migrations after each deploy.
 * `.python-version` — pins the Python build.
-* `ll_project/settings.py` — reads PostgreSQL from `DATABASE_URL` in every
-  environment and switches to WhiteNoise when `STACK` contains `scalingo`.
+* `ll_project/settings.py` — reads PostgreSQL and Redis from `DATABASE_URL` and
+  `REDIS_URL` in every environment and switches to WhiteNoise when `STACK`
+  contains `scalingo`.
 
 Steps:
 
@@ -279,14 +289,16 @@ Steps:
    [Scalingo CLI](https://doc.scalingo.com/tools/cli/start), then
    [add your SSH key](https://doc.scalingo.com/platform/getting-started/first-steps#ssh-key-setup).
 
-2. Create the application and add a PostgreSQL addon:
+2. Create the application and add a PostgreSQL addon and a Redis (caching)
+   addon:
 
    ```
    scalingo create maarifa
    ```
 
-   Add the database from the dashboard's **Addons** tab, or with
-   `scalingo --app maarifa addons-add postgresql <plan>`.
+   Add both from the dashboard's **Addons** tab, or with
+   `scalingo --app maarifa addons-add postgresql <plan>` and
+   `scalingo --app maarifa addons-add redis <plan>`.
 
 3. Set the production environment variables:
 
@@ -297,8 +309,9 @@ Steps:
      DJANGO_ALLOWED_HOSTS=maarifa.osc-fr1.scalingo.io
    ```
 
-   Scalingo injects `DATABASE_URL` automatically once the addon exists. If you
-   omit `DJANGO_ALLOWED_HOSTS`, the app falls back to accepting any host.
+   Scalingo injects `DATABASE_URL` and `REDIS_URL` automatically once the addons
+   exist. If you omit `DJANGO_ALLOWED_HOSTS`, the app falls back to accepting any
+   host.
 
 4. Add the Scalingo git remote and deploy. Get the exact remote URL (it depends
    on your app's region) with:
@@ -348,6 +361,18 @@ docker compose ps
 
 If port 5433 is taken by something else, publish on another host port and set
 `DATABASE_URL` (and `POSTGRES_PORT` for the container) to match.
+
+### `ConnectionError: Error ... connecting to 127.0.0.1:6379`
+
+Redis is not running. Start it and retry:
+
+```
+docker compose up -d redis
+docker compose ps
+```
+
+If port 6379 is taken by something else, publish on another host port and set
+`REDIS_URL` (and `REDIS_PORT` for the container) to match.
 
 ### `ModuleNotFoundError: No module named 'X'`
 
