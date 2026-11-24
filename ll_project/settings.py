@@ -207,6 +207,54 @@ STATIC_URL = 'static/'
 # (WhiteNoise on Scalingo). Git-ignored; see .gitignore.
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# User-uploaded media stays on disk for a local checkout. A deployed instance
+# switches only after all required S3 configuration is supplied, so a typo in a
+# production secret cannot quietly send uploads to an ephemeral local volume.
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+_S3_REQUIRED_ENV_VARS = (
+    'S3_BUCKET_NAME',
+    'S3_ACCESS_KEY_ID',
+    'S3_SECRET_ACCESS_KEY',
+)
+_S3_CONFIGURED = any(os.environ.get(name) for name in _S3_REQUIRED_ENV_VARS)
+if _S3_CONFIGURED:
+    _missing_s3_vars = [
+        name for name in _S3_REQUIRED_ENV_VARS if not os.environ.get(name)
+    ]
+    if _missing_s3_vars:
+        raise ImproperlyConfigured(
+            'S3 storage requires ' + ', '.join(_missing_s3_vars) + '.'
+        )
+
+    _default_storage = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'access_key': os.environ['S3_ACCESS_KEY_ID'],
+            'secret_key': os.environ['S3_SECRET_ACCESS_KEY'],
+            'bucket_name': os.environ['S3_BUCKET_NAME'],
+            'endpoint_url': os.environ.get('S3_ENDPOINT_URL') or None,
+            'region_name': os.environ.get('S3_REGION_NAME') or None,
+            'custom_domain': os.environ.get('S3_CUSTOM_DOMAIN') or None,
+        },
+    }
+else:
+    _default_storage = {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        'OPTIONS': {
+            'location': MEDIA_ROOT,
+            'base_url': MEDIA_URL,
+        },
+    }
+
+STORAGES = {
+    'default': _default_storage,
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -241,13 +289,8 @@ if 'scalingo' in os.environ.get('STACK', ''):
 
     # WhiteNoise serves static files straight from the app process.
     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-    STORAGES = {
-        'default': {
-            'BACKEND': 'django.core.files.storage.FileSystemStorage',
-        },
-        'staticfiles': {
-            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-        },
+    STORAGES['staticfiles'] = {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     }
 
     # Scalingo gives each app its own *.scalingo.io hostname. Honour an explicit

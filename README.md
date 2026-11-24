@@ -206,6 +206,10 @@ deployment. See [.env.example](.env.example).
 | `DATABASE_URL`         | No              | the Docker service (`postgres://maarifa:maarifa@127.0.0.1:5433/maarifa`) | PostgreSQL connection string, read in every environment. Scalingo injects it automatically. |
 | `REDIS_URL`            | No              | the Docker service (`redis://127.0.0.1:6379/0`) | Redis connection string for the cache, read in every environment. Scalingo injects it automatically. |
 | `CELERY_BROKER_URL`    | No              | `REDIS_URL` | Optional dedicated Redis URL for Celery workers and beat. |
+| `S3_BUCKET_NAME` | No | — | Enables S3-compatible upload storage; requires the access key and secret below. |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | With S3 bucket | — | Credentials for the media bucket. |
+| `S3_ENDPOINT_URL` | No | provider default | Endpoint for an S3-compatible provider. |
+| `S3_REGION_NAME` / `S3_CUSTOM_DOMAIN` | No | provider default | Optional bucket region and public media domain. |
 | `STACK`                | Scalingo only   | —       | Set by Scalingo's buildpack. Its presence activates the Scalingo static-file configuration and requires TLS (`sslmode=require`) to the database. |
 
 ---
@@ -232,6 +236,14 @@ celery -A ll_project beat --loglevel=INFO
 
 Beat intentionally has no product schedule in this phase. Phase 11 will load
 its entries from database-backed `ScheduleConfig` rows.
+
+### Upload storage
+
+Without S3 environment variables, uploaded media is stored locally in `media/`
+and served from `/media/`. Set `S3_BUCKET_NAME`, `S3_ACCESS_KEY_ID`, and
+`S3_SECRET_ACCESS_KEY` together to use an S3-compatible bucket; optionally set
+its endpoint, region, and custom domain. Partial S3 configuration stops startup
+instead of silently falling back to local storage.
 
 Migrations are committed to the repository. Apply them with:
 
