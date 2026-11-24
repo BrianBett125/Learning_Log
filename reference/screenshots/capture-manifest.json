@@ -1,0 +1,202 @@
+[
+  {
+    "page": "home",
+    "path": "/",
+    "ctx": "anonymous",
+    "url": "http://127.0.0.1:8765/",
+    "status": "ok",
+    "css": {
+      "sheets": 1,
+      "bootstrapHref": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+      "primaryBg": "rgb(13, 110, 253)",
+      "navbarBg": "rgb(248, 249, 250)",
+      "authed": false,
+      "bodyText": 245
+    },
+    "png": {
+      "bytes": 43567,
+      "distinctSampled": 200
+    },
+    "title": "Learning Log"
+  },
+  {
+    "page": "login",
+    "path": "/accounts/login/",
+    "ctx": "anonymous",
+    "url": "http://127.0.0.1:8765/accounts/login/",
+    "status": "ok",
+    "css": {
+      "sheets": 1,
+      "bootstrapHref": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+      "primaryBg": "rgb(13, 110, 253)",
+      "navbarBg": "rgb(248, 249, 250)",
+      "authed": false,
+      "bodyText": 84
+    },
+    "png": {
+      "bytes": 24372,
+      "distinctSampled": 145
+    },
+    "title": "Learning Log"
+  },
+  {
+    "page": "register",
+    "path": "/accounts/register/",
+    "ctx": "anonymous",
+    "url": "http://127.0.0.1:8765/accounts/register/",
+    "status": "ok",
+    "css": {
+      "sheets": 1,
+      "bootstrapHref": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+      "primaryBg": null,
+      "navbarBg": "rgb(248, 249, 250)",
+      "authed": false,
+      "bodyText": 422
+    },
+    "png": {
+      "bytes": 50694,
+      "distinctSampled": 214
+    },
+    "title": "Learning Log"
+  },
+  {
+    "page": "mobile_home",
+    "path": "/",
+    "ctx": "anonymous",
+    "url": "http://127.0.0.1:8765/",
+    "status": "ok",
+    "css": {
+      "sheets": 1,
+      "bootstrapHref": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+      "primaryBg": "rgb(13, 110, 253)",
+      "navbarBg": "rgb(248, 249, 250)",
+      "authed": false,
+      "bodyText": 222
+    },
+    "png": {
+      "bytes": 89748,
+      "distinctSampled": 245
+    },
+    "title": "Learning Log"
+  },
+  {
+    "page": "topics",
+    "path": "/topics/",
+    "ctx": "authenticated",
+    "url": "http://127.0.0.1:8765/topics/",
+    "status": "ok",
+    "css": {
+      "sheets": 1,
+      "bootstrapHref": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+      "primaryBg": null,
+      "navbarBg": "rgb(248, 249, 250)",
+      "authed": true,
+      "bodyText": 87
+    },
+    "png": {
+      "bytes": 19271,
+      "distinctSampled": 127
+    },
+    "title": "Learning Log"
+  },
+  {
+    "page": "topic_detail",
+    "path": "/topics/1/",
+    "ctx": "authenticated",
+    "url": "http://127.0.0.1:8765/topics/1/",
+    "status": "ok",
+    "css": {
+      "sheets": 1,
+      "bootstrapHref": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+      "primaryBg": null,
+      "navbarBg": "rgb(248, 249, 250)",
+      "authed": true,
+      "bodyText": 250
+    },
+    "png": {
+      "bytes": 41991,
+      "distinctSampled": 191
+    },
+    "title": "Learning Log"
+  },
+  {
+    "page": "new_topic",
+    "path": "/new_topic/",
+    "ctx": "authenticated",
+    "url": "http://127.0.0.1:8765/new_topic/",
+    "status": "ok",
+    "css": {
+      "sheets": 1,
+      "bootstrapHref": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+      "primaryBg": null,
+      "navbarBg": "rgb(248, 249, 250)",
+      "authed": true,
+      "bodyText": 69
+    },
+    "png": {
+      "bytes": 15289,
+      "distinctSampled": 100
+    },
+    "title": "Learning Log"
+  },
+  {
+    "page": "new_entry",
+    "path": "/new_entry/1/",
+    "ctx": "authenticated",
+    "url": "http://127.0.0.1:8765/new_entry/1/",
+    "status": "ok",
+    "css": {
+      "sheets": 1,
+      "bootstrapHref": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+      "primaryBg": null,
+      "navbarBg": "rgb(248, 249, 250)",
+      "authed": true,
+      "bodyText": 77
+    },
+    "png": {
+      "bytes": 16488,
+      "distinctSampled": 106
+    },
+    "title": "Learning Log"
+  },
+  {
+    "page": "edit_entry",
+    "path": "/edit_entry/1/",
+    "ctx": "authenticated",
+    "url": "http://127.0.0.1:8765/edit_entry/1/",
+    "status": "ok",
+    "css": {
+      "sheets": 1,
+      "bootstrapHref": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+      "primaryBg": null,
+      "navbarBg": "rgb(248, 249, 250)",
+      "authed": true,
+      "bodyText": 75
+    },
+    "png": {
+      "bytes": 21570,
+      "distinctSampled": 138
+    },
+    "title": "Learning Log"
+  },
+  {
+    "page": "mobile_topic_detail",
+    "path": "/topics/1/",
+    "ctx": "authenticated",
+    "url": "http://127.0.0.1:8765/topics/1/",
+    "status": "ok",
+    "css": {
+      "sheets": 1,
+      "bootstrapHref": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+      "primaryBg": null,
+      "navbarBg": "rgb(248, 249, 250)",
+      "authed": false,
+      "bodyText": 222
+    },
+    "png": {
+      "bytes": 78543,
+      "distinctSampled": 238
+    },
+    "title": "Learning Log"
+  }
+]
