@@ -299,6 +299,105 @@ Goal (plan §8): run the full suite and the system checks, walk every main flow 
 
 ---
 
+## 11. Phase 9 — documentation and deployment readiness (2026-11-24)
+
+Goal (plan §8): write setup instructions, document the environment variables and
+migrations, document how to run the tests, add production configuration for the
+chosen host, and confirm the local acceptance criteria pass. The five
+`check --deploy` warnings Phase 8 deferred (W004 HSTS, W008 SSL redirect, W012
+session cookie, W016 CSRF cookie, W018 DEBUG) are resolved here.
+
+**Host decision.** §6.5 left the provider open. The book's `chapter_20` ships an
+obsolete Platform.sh config (`.platform.app.yaml`, `python:3.10`), so it is not
+used. The author's current guidance adopts **Scalingo**, and the repo is prepared
+for it while the actual deploy stays with the operator (local verification only).
+
+**Authoritative source for the platform files.** The author's guide drives
+`django-simple-deploy` with the `dsd-scalingo` plugin (`ehmatthes/dsd-scalingo`),
+whose generator (`dsd_scalingo/platform_deployer.py`, `.../templates/settings.py`)
+emits exactly the files below. They were reproduced from that generator rather
+than guessed:
+
+| File | Content |
+| --- | --- |
+| `Procfile` | `web: gunicorn ll_project.wsgi --log-file -` and `postdeploy: bash bin/post_deploy.sh` |
+| `bin/post_deploy.sh` | `#!/bin/sh` then `python manage.py migrate` (executable, mode `775`) |
+| `.python-version` | `3.14` (buildpack pins the interpreter) |
+
+**Deviations from the generator** (documented rather than copied blindly):
+`psycopg[binary]` (psycopg 3) replaces `psycopg2`; `dj-static` is omitted because
+WhiteNoise already serves the static files; and the static block sets both
+`STORAGES` keys explicitly (`default` and `staticfiles`) rather than only
+`staticfiles`. `STATICFILES_DIRS` is absent because the project ships no local
+static directory at all (no top-level `static/`, no app `static/`); the Bootstrap
+assets come from the CDN through `django-bootstrap5`.
+
+**`ll_project/settings.py`.** Two additive blocks, both inert locally:
+
+1. A `STACK`-gated Scalingo block (`if 'scalingo' in os.environ.get('STACK', '')`):
+   switches `DATABASES` to the platform PostgreSQL via `dj_database_url`, forces
+   `DEBUG = False`, inserts `WhiteNoiseMiddleware`, sets the WhiteNoise
+   `CompressedManifestStaticFilesStorage` for static files, and uses
+   `ALLOWED_HOSTS = ALLOWED_HOSTS or ['*']` so an explicit
+   `DJANGO_ALLOWED_HOSTS` is honoured and only an unset one falls back to the
+   platform default.
+2. A `DEBUG`-gated production-hardening block (`if not DEBUG`): sets
+   `SECURE_PROXY_SSL_HEADER`, `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`,
+   `CSRF_COOKIE_SECURE`, and one-year HSTS with subdomains and preload.
+
+`STATIC_ROOT = BASE_DIR / 'staticfiles'` was added unconditionally (git-ignored).
+
+**Documentation.** `README.md` was rewritten: corrected project structure (adds
+`Procfile`, `.python-version`, `bin/post_deploy.sh`, `tests/`, `conftest.py`),
+the required `.env`/`DJANGO_SECRET_KEY` step, an Environment Variables table, a
+Database Migrations section, a Running the Tests section, and a Scalingo
+deployment section. `.env.example` already documents the three local variables.
+
+**Deterministic results**
+
+- `manage.py check --deploy --fail-level WARNING` with `DJANGO_DEBUG=False
+  DJANGO_ALLOWED_HOSTS=example.com` → **no issues (0 silenced)**; the five Phase 8
+  warnings are resolved.
+- `manage.py check` → no issues. `manage.py collectstatic` → 127 files copied.
+- Scalingo branch confirmed through a fresh interpreter with
+  `STACK=scalingo-26` and a `DATABASE_URL`: `DEBUG=False`, DB engine
+  `django.db.backends.postgresql`, WhiteNoise in `MIDDLEWARE`, the manifest
+  storage for `staticfiles`, and every hardening flag on.
+- `tests/test_production_settings.py` (+7 tests) starts a fresh interpreter per
+  scenario, which is the only honest way to test settings evaluated once at import.
+
+**README verified from a clean checkout** (acceptance: "README setup instructions
+work from a clean checkout"). The tree was copied to `/tmp/ll-clean` without
+`.git`/`.venv`/`.env`/`db.sqlite3`, then the documented steps were run: venv,
+`pip install -r requirements.txt` (`pip check` clean), `.env` from `.env.example`
+with a generated key, `manage.py migrate` on a fresh database (all migrations OK),
+`pytest` → **144 passed**. A gunicorn smoke test of the exact `Procfile` web
+command returned HTTP 200 for `/` and `/accounts/login/`.
+
+Note: this container's `/usr/bin/python3` ships without `ensurepip`, so
+`python3 -m venv .venv` produces a venv without pip here; pip was bootstrapped
+with `get-pip.py` to mirror how the project's own venv was built. On a normal
+machine `python3 -m venv` includes pip and the README step works verbatim.
+
+**Bug found and fixed by that clean-checkout run.** `tests/test_production_settings.py`
+was not hermetic: `_env()` pinned `DJANGO_SECRET_KEY` and cleared `STACK`/
+`DATABASE_URL`, but not `DJANGO_ALLOWED_HOSTS`. Because `settings.py` calls
+`load_dotenv(BASE_DIR / '.env')` and `load_dotenv` does not override a variable
+already set, a developer `.env` containing `DJANGO_ALLOWED_HOSTS` leaked into the
+child interpreter and broke the assertion that an unset value falls back to
+`['*']`. It had passed earlier only while `.env` was empty. `_env()` now pins
+`DJANGO_DEBUG` and `DJANGO_ALLOWED_HOSTS` too, so the tests no longer depend on a
+machine's local configuration.
+
+**Three-pass README verification.** (1) Every command in Setup, Environment
+Variables, Migrations, Tests and Deployment was run in `/tmp/ll-clean` and its
+output matched what the text claims. (2) The internal links (`requirements.txt`,
+`.env.example`) resolve to real files. (3) The deployment section was checked
+against the Scalingo CLI surface and the `dsd-scalingo` generator; the env-set,
+addon, `git-show` and postdeploy steps match the platform's documented flow.
+
+---
+
 ## How to run the reference
 
 ```bash

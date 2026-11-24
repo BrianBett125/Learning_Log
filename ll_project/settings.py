@@ -140,6 +140,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Where `collectstatic` gathers files for the production static handler
+# (WhiteNoise on Scalingo). Git-ignored; see .gitignore.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -149,3 +153,66 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'learning_logs:index'
 LOGOUT_REDIRECT_URL ='learning_logs:index'
 LOGIN_URL = 'accounts:login'
+
+
+# Scalingo deployment.
+#
+# Scalingo's Python buildpack sets STACK=scalingo-XX in the container. When that
+# is present we use the platform's PostgreSQL database, serve collected static
+# files through WhiteNoise, and stop showing debug pages. Locally STACK is unset,
+# so none of this applies and `runserver` behaves exactly as before.
+#
+# This mirrors the configuration django-simple-deploy generates for Scalingo
+# (dsd_scalingo/templates/settings.py); see reference-inventory.md §4 and §11.
+if 'scalingo' in os.environ.get('STACK', ''):
+    import dj_database_url
+
+    DEBUG = False
+
+    DATABASES = {
+        'default': dj_database_url.config(
+            env='DATABASE_URL',
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True,
+        ),
+    }
+
+    # WhiteNoise serves static files straight from the app process.
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
+
+    # Scalingo gives each app its own *.scalingo.io hostname. Honour an explicit
+    # DJANGO_ALLOWED_HOSTS when the operator sets one; only fall back to the
+    # platform default (any host) when none is configured.
+    ALLOWED_HOSTS = ALLOWED_HOSTS or ['*']
+
+
+# Production hardening.
+#
+# Applies whenever the app is not in DEBUG mode, which is how it is deployed
+# (DEBUG=False comes from DJANGO_DEBUG). These are the settings
+# `manage.py check --deploy` looks for. Local development keeps DEBUG=True and
+# is unaffected, so `runserver` over plain HTTP still works.
+if not DEBUG:
+    # The host's proxy terminates TLS and forwards the original scheme.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+    # Send every plain-HTTP request to HTTPS.
+    SECURE_SSL_REDIRECT = True
+
+    # Session and CSRF cookies are only sent over HTTPS.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+    # HSTS: browsers refuse plain HTTP to this host for one year.
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
