@@ -257,6 +257,24 @@ How they were produced and verified (so the baseline is reproducible, not truste
 
 ---
 
+## 9. Phase 7 — visual matching results (2026-11-24)
+
+Goal: every page must visually match the reference; markup/CSS only, no new features. Two independent, reproducible layers.
+
+**Layer A — source byte diff.** Every `.py` and `.html` under `learning_logs/` and `accounts/` was diffed against `/tmp/pcc_3e/chapter_20/styling_learning_log`. No template diverges from the reference in any way that can render differently. The only template differences are a trailing newline at EOF (ours has one, the reference's does not) and one blank line in `index.html` that in the reference carries 6 trailing spaces and in ours is empty (both collapse to the same whitespace node). The one genuine markup divergence found, a mixed space+tab indent in `new_topic.html`, was corrected in this phase; it now differs only by the trailing newline. Python differences are comments, docstrings, import order, whitespace, and the deliberate Phase 4/5 ownership edits (`get_object_or_404(..., owner=request.user)`), none of which affect rendering.
+
+**Layer B — pixel diff.** All 10 pages were captured with the Phase 0 harness (headless Chrome 158, same viewports, same seeded `demo` data) and diffed against `reference/screenshots/`: **all 10 pages byte-identical to the baseline (sha256)**. In addition, 66 viewport widths straddling the Bootstrap breakpoints (`navbar-expand-md` at 768, plus 576/992/1200), 9 hover/focus/active states, and 4 states the fixed snapshots never render (wrong-password re-render, register password mismatch, empty new-topic/new-entry, empty topic list, long content on an empty and a populated topic) were compared side by side: zero differences.
+
+**Recorded differences (all non-visual; none is a Phase 7 markup issue):**
+
+1. **Trailing newline at EOF.** Every source file of ours ends with a newline; the reference's do not. Invisible; kept deliberately (POSIX convention, clean diffs).
+2. **`index.html` blank line.** Reference line 6 is `"      \n"`, ours is `"\n"`. HTML whitespace collapsing makes this invisible; the rendered home screenshot is byte-identical.
+3. **Login/register text caret.** A 1x22 px delta can appear on `login`/`register` between runs: the blinking caret in the autofocused username input. Non-deterministic in the harness; re-capturing the reference server against its own baseline reproduces the identical 1x22 sliver at the same coordinates, so it is harness-side, not markup.
+4. **Missing-ID responses (pre-existing, non-visual).** `/topics/99999/`, `/new_entry/99999/`, `/edit_entry/99999/` return 404 in ours and 500 in the reference (the reference lets `Topic.DoesNotExist` escape; we use `get_object_or_404` with an owner filter, per section 6.4 and Phases 4/5). Ours is the strictly better behaviour and it is not reachable from normal navigation.
+5. **`settings.py` `context_processors.debug`.** Ours omits it; no template references `debug` or `sql_queries`, so rendering is unaffected.
+
+---
+
 ## How to run the reference
 
 ```bash
