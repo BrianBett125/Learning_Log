@@ -1,4 +1,4 @@
-"""CSRF enforcement and output escaping for the learning-log views (Phase 8).
+"""CSRF enforcement and output escaping for the learning views (Phase 8).
 
 Plan §9 requires that "Forms use CSRF protection" and that "User content is
 safely escaped in templates". Neither was tested before this phase: the topic

@@ -1,7 +1,8 @@
-# Learning Log: Evolution Plan (V1.1 → V2.0)
+# Maarifa: Evolution Plan (V1.1 → V2.0)
 
-This document plans the evolution of Learning Log from the finished Chapter 18–20
-replica (see `plan.md`, complete through Phase 9) into a knowledge platform.
+This document plans the evolution of Maarifa from its finished Chapter 18–20
+learning-journal foundation (see `plan.md`, complete through Phase 9) into a
+knowledge platform.
 
 `plan.md` built the faithful replica: `User → Topic → Entry`, owner-scoped
 queries, Bootstrap 5 layout, 144 tests. `new_plan.md` changes the target. The

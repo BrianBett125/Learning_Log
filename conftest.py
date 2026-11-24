@@ -1,4 +1,4 @@
-"""Pytest bootstrap for the Learning Log project.
+"""Pytest bootstrap for the Maarifa project.
 
 ``ll_project.settings`` raises ``ImproperlyConfigured`` when
 ``DJANGO_SECRET_KEY`` is missing, and loads a local ``.env`` when present.

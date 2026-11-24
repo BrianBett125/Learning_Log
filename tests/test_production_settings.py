@@ -160,10 +160,10 @@ def test_scalingo_respects_an_explicit_allowed_hosts():
     data = _settings(
         STACK='scalingo-26',
         DATABASE_URL='postgres://user:pw@host:5432/appdb',
-        DJANGO_ALLOWED_HOSTS='learning-log.osc-fr1.scalingo.io',
+        DJANGO_ALLOWED_HOSTS='maarifa.osc-fr1.scalingo.io',
     )
 
-    assert data['ALLOWED_HOSTS'] == ['learning-log.osc-fr1.scalingo.io']
+    assert data['ALLOWED_HOSTS'] == ['maarifa.osc-fr1.scalingo.io']
 
 
 def test_scalingo_deploy_files_are_present():

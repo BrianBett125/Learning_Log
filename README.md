@@ -1,7 +1,13 @@
-# 📘 Learning Log
+<p align="center">
+  <img src="learning_logs/static/learning_logs/maarifa-mark.svg" width="72"
+       alt="Maarifa open-book and checkmark logo">
+</p>
+<h1 align="center">Maarifa</h1>
+<p align="center"><strong>Learn. Reflect. Understand. Grow.</strong></p>
 
-Learning Log is a Django web application that lets users track their learning by
-organizing topics and recording dated entries under each one.
+Maarifa is a Django learning application for organizing topics and recording
+what you learn under each one. It is designed to grow into a personal knowledge
+platform for measuring understanding, finding gaps, and building expertise.
 
 ---
 
@@ -47,7 +53,7 @@ Exact versions are pinned in [requirements.txt](requirements.txt).
 ## 📁 Project Structure
 
 ```
-Learning_Log/
+Maarifa/ (repository checkout directory)
 ├── manage.py
 ├── requirements.txt
 ├── pytest.ini                 # pytest configuration
@@ -94,8 +100,8 @@ directory.
 ### 1. Clone the repository
 
 ```
-git clone https://github.com/BrianBett125/Learning_Log.git
-cd Learning_Log
+git clone https://github.com/BrianBett125/Maarifa.git
+cd Maarifa
 ```
 
 ### 2. Create and activate a virtual environment
@@ -237,19 +243,19 @@ Steps:
 2. Create the application and add a PostgreSQL addon:
 
    ```
-   scalingo create learning-log
+   scalingo create maarifa
    ```
 
    Add the database from the dashboard's **Addons** tab, or with
-   `scalingo --app learning-log addons-add postgresql <plan>`.
+   `scalingo --app maarifa addons-add postgresql <plan>`.
 
 3. Set the production environment variables:
 
    ```
-   scalingo --app learning-log env-set \
+   scalingo --app maarifa env-set \
      DJANGO_SECRET_KEY=<a freshly generated key> \
      DJANGO_DEBUG=False \
-     DJANGO_ALLOWED_HOSTS=learning-log.osc-fr1.scalingo.io
+     DJANGO_ALLOWED_HOSTS=maarifa.osc-fr1.scalingo.io
    ```
 
    Scalingo injects `DATABASE_URL` automatically once the addon exists. If you
@@ -259,7 +265,7 @@ Steps:
    on your app's region) with:
 
    ```
-   scalingo --app learning-log git-show
+   scalingo --app maarifa git-show
    ```
 
    Then:
@@ -273,7 +279,7 @@ Steps:
    Create an admin account on the deployed app:
 
    ```
-   scalingo --app learning-log run python manage.py createsuperuser
+   scalingo --app maarifa run python manage.py createsuperuser
    ```
 
 6. Confirm the deployed app can register a user, log in, create a topic, add an

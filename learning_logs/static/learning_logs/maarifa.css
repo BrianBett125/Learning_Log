@@ -1,0 +1,56 @@
+:root {
+  --maarifa-forest: #1b2e27;
+  --maarifa-sage: #c5d7ad;
+  --maarifa-muted-sage: #9cab8e;
+}
+
+.maarifa-nav-mark {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+}
+
+.maarifa-hero {
+  overflow: hidden;
+  border: 0;
+  border-radius: 1.5rem;
+  background: var(--maarifa-forest);
+  color: #f6f5ed;
+  text-align: center;
+}
+
+.maarifa-hero-mark {
+  display: block;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 0.75rem;
+}
+
+.maarifa-hero h1 {
+  margin-bottom: 0.5rem;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.maarifa-tagline {
+  color: var(--maarifa-sage);
+  font-size: clamp(1.05rem, 2.6vw, 1.35rem);
+}
+
+.maarifa-description {
+  color: #d2d5ce;
+}
+
+.maarifa-hero .btn-primary {
+  border-color: var(--maarifa-sage);
+  background: var(--maarifa-sage);
+  color: var(--maarifa-forest);
+}
+
+.maarifa-hero .btn-primary:hover,
+.maarifa-hero .btn-primary:focus {
+  border-color: #d6e2c6;
+  background: #d6e2c6;
+  color: var(--maarifa-forest);
+}

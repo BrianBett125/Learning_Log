@@ -57,18 +57,22 @@ def test_home_page_renders_index_via_base(client):
     assert 'learning_logs/base.html' in names
 
 
-def test_home_page_renders_reference_hero(client):
+def test_home_page_renders_maarifa_hero(client):
     html = home_html(client)
-    assert 'Track your learning.' in html
-    assert '<h1 class="display-3">' in html
-    assert '<p class="lead">' in html
-    assert 'Make your own Learning Log' in html
+    assert '<title>Maarifa | Learn. Reflect. Understand. Grow.</title>' in html
+    assert '<h1>MAARIFA</h1>' in html
+    assert 'Learn. Reflect. Understand. Grow.' in html
+    assert 'Your personal universe of knowledge.' in html
+    assert 'class="lead mx-auto mb-4"' in html
+    assert "Organize the topics you're exploring" in html
     assert 'btn btn-primary btn-lg' in html
+    assert 'learning_logs/maarifa-mark.svg' in html
+    assert 'learning_logs/maarifa.css' in html
 
 
 def test_home_page_call_to_action_points_at_registration(client):
     html = home_html(client)
-    assert f'href="{reverse("accounts:register")}">Register &raquo;</a>' in html
+    assert f'href="{reverse("accounts:register")}">Start learning &raquo;</a>' in html
 
 
 # --- Responsive layout -----------------------------------------------------
@@ -85,7 +89,7 @@ def test_navbar_links_home_and_topics(client):
     nav = navbar(home_html(client))
     assert f'href="{reverse("learning_logs:index")}"' in nav
     assert f'href="{reverse("learning_logs:topics")}"' in nav
-    assert 'Learning Log' in nav
+    assert 'Maarifa' in nav
 
 
 # --- Shared navigation: anonymous visitor ----------------------------------

@@ -3,18 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Learning Log</title>
+  <title>{% block title %}Maarifa{% endblock title %}</title>
 
+  {% load static %}
   {% load django_bootstrap5 %}
   {% bootstrap_css %}
   {% bootstrap_javascript %}
+  <link rel="icon" type="image/svg+xml" href="{% static 'learning_logs/maarifa-mark.svg' %}">
+  <link rel="stylesheet" href="{% static 'learning_logs/maarifa.css' %}">
 
 </head>
 <body>
   <nav class="navbar navbar-expand-md navbar-light bg-light mb-4 border">
     <div class="container-fluid">
-      <a class="navbar-brand" href="{% url 'learning_logs:index' %}">
-          Learning Log</a>
+      <a class="navbar-brand d-inline-flex align-items-center gap-2"
+          href="{% url 'learning_logs:index' %}">
+        <img class="maarifa-nav-mark"
+            src="{% static 'learning_logs/maarifa-mark.svg' %}" alt="">
+        <span>Maarifa</span>
+      </a>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
         data-bs-target="#navbarCollapse" aria-controls="navbarCollapse"

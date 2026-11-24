@@ -1,16 +1,22 @@
 {% extends 'learning_logs/base.html' %}
+{% load static %}
+
+{% block title %}Maarifa | Learn. Reflect. Understand. Grow.{% endblock title %}
 
 {% block page_header %}
-  <div class="p-3 mb-4 bg-light border rounded-3">
-    <div class="container-fluid py-4">
-      <h1 class="display-3">Track your learning.</h1>
-
-      <p class="lead">Make your own Learning Log, and keep a list of the
-      topics you're learning about. Whenever you learn something new
-      about a topic, make an entry summarizing what you've learned.</p>
-
+  <div class="maarifa-hero p-4 p-md-5 mb-4 rounded-4">
+    <div class="container-fluid py-3 py-md-4">
+      <img class="maarifa-hero-mark"
+          src="{% static 'learning_logs/maarifa-mark.svg' %}" alt="">
+      <h1>MAARIFA</h1>
+      <p class="maarifa-tagline mb-2">Learn. Reflect. Understand. Grow.</p>
+      <p class="maarifa-description mb-4">Your personal universe of knowledge.</p>
+      <p class="lead mx-auto mb-4" style="max-width: 48rem;">
+        Organize the topics you're exploring and record what you learn along
+        the way. Build a personal knowledge practice, one entry at a time.
+      </p>
       <a class="btn btn-primary btn-lg mt-1"
-          href="{% url 'accounts:register' %}">Register &raquo;</a>
+          href="{% url 'accounts:register' %}">Start learning &raquo;</a>
     </div>
   </div>
 {% endblock page_header %}
