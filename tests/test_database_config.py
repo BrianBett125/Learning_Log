@@ -122,28 +122,30 @@ def _sqlite_offenders(source: str) -> list[str]:
         found.append('sqlite database URL')
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            if any(alias.name.split('.')[0] == 'sqlite3' for alias in node.names):
+            if any('sqlite3' in alias.name.split('.') for alias in node.names):
                 found.append('import sqlite3')
         elif isinstance(node, ast.ImportFrom):
-            if node.module and node.module.split('.')[0] == 'sqlite3':
+            if node.module and 'sqlite3' in node.module.split('.'):
                 found.append('from sqlite3 import ...')
     return found
 
 
 def test_sqlite_detector_catches_backend_and_url_forms():
-    """The scanner must not pass a real reintroduction. Both shapes are covered.
+    """The scanner must not pass a real reintroduction. Every shape is covered.
 
     This is the guard on the guard: it proves ``test_no_python_source_references
-    _sqlite`` would fail if SQLite came back via the Django backend name or via a
-    ``dj-database-url`` connection string.
+    _sqlite`` would fail if SQLite came back via the Django backend name, a
+    ``dj-database-url`` connection string, or an import of the backend module.
     """
     backend = "DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3'}}"
     url = "DATABASE_URL = 'sqlite:///:memory:'"
     imp = 'import sqlite3'
+    dotted_import = 'from django.db.backends.sqlite3 import DatabaseWrapper'
 
     assert _sqlite_offenders(backend) == ['sqlite backend or filename literal']
     assert _sqlite_offenders(url) == ['sqlite database URL']
     assert _sqlite_offenders(imp) == ['import sqlite3']
+    assert _sqlite_offenders(dotted_import) == ['from sqlite3 import ...']
     # Prose alone is not a code path and must stay clean.
     assert _sqlite_offenders('"""No SQLite here."""\nx = 1') == []
 

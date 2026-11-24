@@ -98,6 +98,10 @@ All state-changing forms use `{% csrf_token %}`; logout is a **POST** form.
 
 ### 1.7 Settings — `ll_project/settings.py`
 
+> Describes the *reference* app as captured in Phase 0. Maarifa's own settings
+> diverged in Phase 1 (PostgreSQL from `DATABASE_URL`, no SQLite); §12 is the
+> current truth for this repository.
+
 - `INSTALLED_APPS`: `learning_logs`, `accounts`, `django_bootstrap5`, then the Django defaults.
 - `MIDDLEWARE`: Django defaults only (`Security`, `Session`, `Common`, `Csrf`, `Auth`, `Messages`, `XFrameOptions`).
 - `TEMPLATES`: `DIRS = [BASE_DIR / 'templates']`, `APP_DIRS = True`.
@@ -220,7 +224,7 @@ _Decisions confirmed by Brian on 2026-11-24 are marked **DECIDED**; the rest sta
 
 ## 7. Proposed implementation checklist (mapped to plan phases)
 
-- **Phase 1 — foundation:** decide Django/SQLite versions (§6.2/6.3); keep `ll_project/` package name (the plan's `config/` is a suggestion); confirm `base.html`, `LOGIN_*` settings, `db.sqlite3`, and that `manage.py check` is clean. *(Largely done.)*
+- **Phase 1 — foundation:** decide Django/SQLite versions (§6.2/6.3); keep `ll_project/` package name (the plan's `config/` is a suggestion); confirm `base.html`, `LOGIN_*` settings, `db.sqlite3`, and that `manage.py check` is clean. *(Done; the `db.sqlite3` item is superseded by §12 — the app now runs on PostgreSQL and has no SQLite path.)*
 - **Phase 2 — models/admin:** fix `Entry.__str__` nesting; register `Topic`/`Entry` in admin; keep `0001-0003` migrations; add model tests (relationships, `__str__`).
 - **Phase 3 — public pages/layout:** rebuild `index.html` to the `display-3` hero; confirm `base.html` nav + auth-aware links; add `pytest`/`pytest-django` scaffold with model tests.
 - **Phase 4 — topics:** fix the `topics/<id>/` trailing slash; scope queries to `request.user`; add form validation + empty state; authorization tests (anonymous redirect, cross-user 404).
@@ -450,7 +454,8 @@ The rules ignore a file, they do not reference a backend.
 **Tests.** New `tests/test_database_config.py` (9 tests): the loaded engine is
 PostgreSQL; no project `.py` references SQLite (AST scan for a `.sqlite3` string,
 a `sqlite://` URL, or a `sqlite3` import, prose excluded); a meta-test proves that
-scanner catches both a backend literal and a `dj-database-url` string;
+scanner catches every shape (backend literal, URL string, bare and dotted
+import);
 `DATABASE_URL` is honoured; the unset fallback matches the compose service's
 port, database, and user; the compose image is the pgvector one; `init.sql`
 enables the extension; and the extension is installable on the server running the
