@@ -42,8 +42,8 @@ server-side on every view, so one user can never read or modify another's data.
 | Language   | Python 3.14                                      |
 | Backend    | Django 5.2 (LTS)                                 |
 | Frontend   | Bootstrap 5 via `django-bootstrap5`              |
-| Database   | SQLite (development), PostgreSQL (Scalingo)      |
-| Testing    | `pytest` + `pytest-django`                       |
+| Database   | PostgreSQL 17 with `pgvector` (Docker locally, Scalingo in production) |
+| Testing    | `pytest` + `pytest-django` on PostgreSQL         |
 | Deployment | Scalingo (gunicorn, WhiteNoise, `dj-database-url`) |
 
 Exact versions are pinned in [requirements.txt](requirements.txt).
@@ -58,12 +58,16 @@ Maarifa/ (repository checkout directory)
 ├── requirements.txt
 ├── pytest.ini                 # pytest configuration
 ├── conftest.py                # test bootstrap (supplies a throwaway SECRET_KEY)
+├── docker-compose.yml         # local PostgreSQL 17 + pgvector
 ├── Procfile                   # Scalingo process definitions (web, postdeploy)
 ├── .python-version            # Python version Scalingo builds with
 ├── .env.example               # template for local configuration
 ├── reference-inventory.md     # Phase 0 audit of the reference implementation
 ├── bin/
 │   └── post_deploy.sh         # runs `migrate` after each deploy
+├── docker/
+│   └── postgres/
+│       └── init.sql           # enables the pgvector extension on first start
 ├── ll_project/                # project settings and root URL configuration
 │   ├── settings.py
 │   ├── urls.py
@@ -87,7 +91,8 @@ Maarifa/ (repository checkout directory)
 ├── reference/
 │   └── screenshots/           # visual baseline captured from the reference app
 └── tests/                     # project-level configuration tests
-    └── test_production_settings.py
+    ├── test_production_settings.py
+    └── test_database_config.py
 ```
 
 Templates live inside the app that owns them, not in a top-level `templates/`
@@ -124,7 +129,24 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Create your `.env` file
+### 4. Start PostgreSQL
+
+The app runs on PostgreSQL in every environment (there is no SQLite path). Start
+the local database — a PostgreSQL 17 image with `pgvector` — with Docker:
+
+```
+docker compose up -d db
+```
+
+This publishes PostgreSQL on host port **5433** (chosen so a system PostgreSQL on
+5432 does not collide). The connection string defaults to that service; set
+`DATABASE_URL` to point somewhere else. Check it is up with:
+
+```
+docker compose ps
+```
+
+### 5. Create your `.env` file
 
 The settings module reads `DJANGO_SECRET_KEY` from the environment and refuses to
 start without it. Copy the template and fill in a freshly generated key:
@@ -134,22 +156,23 @@ cp .env.example .env
 python -c "from django.core.management.utils import get_random_secret_key as k; print(k())"
 ```
 
-Paste the printed value into `.env` as `DJANGO_SECRET_KEY`. The real `.env` is
-git-ignored and must never be committed.
+Paste the printed value into `.env` as `DJANGO_SECRET_KEY`. The template already
+sets `DATABASE_URL` to the Docker service above. The real `.env` is git-ignored
+and must never be committed.
 
-### 5. Apply migrations
+### 6. Apply migrations
 
 ```
 python manage.py migrate
 ```
 
-### 6. Create a superuser (optional, for the admin site)
+### 7. Create a superuser (optional, for the admin site)
 
 ```
 python manage.py createsuperuser
 ```
 
-### 7. Run the development server
+### 8. Run the development server
 
 ```
 python manage.py runserver
@@ -170,14 +193,22 @@ deployment. See [.env.example](.env.example).
 | Variable               | Required        | Default | Purpose                                                                                                   |
 | ---------------------- | --------------- | ------- | --------------------------------------------------------------------------------------------------------- |
 | `DJANGO_SECRET_KEY`    | Yes             | —       | Django secret key. The app raises `ImproperlyConfigured` if it is missing.                                 |
-| `DJANGO_DEBUG`         | No              | `True`  | Set to `False` in production. Turns on HTTPS redirect, HSTS and secure cookies.                            |
+| `DJANGO_DEBUG`         | No              | `True`  | Set to `False` in production. Turns on HTTPS redirect, HSTS and secure cookies.                           |
 | `DJANGO_ALLOWED_HOSTS` | When `DEBUG=False` | empty   | Comma-separated hostnames the app will serve.                                                              |
-| `DATABASE_URL`         | Scalingo only   | —       | Connection string for the PostgreSQL addon. Read only when `STACK` contains `scalingo`.                    |
-| `STACK`                | Scalingo only   | —       | Set by Scalingo's buildpack. Its presence activates the Scalingo database and static-file configuration.   |
+| `DATABASE_URL`         | No              | the Docker service (`postgres://maarifa:maarifa@127.0.0.1:5433/maarifa`) | PostgreSQL connection string, read in every environment. Scalingo injects it automatically. |
+| `STACK`                | Scalingo only   | —       | Set by Scalingo's buildpack. Its presence activates the Scalingo static-file configuration and requires TLS (`sslmode=require`) to the database. |
 
 ---
 
 ## 🗄️ Database Migrations
+
+The database is PostgreSQL everywhere (Docker locally, the Scalingo addon in
+production); the connection string comes from `DATABASE_URL`. Start the local
+database before running any management command:
+
+```
+docker compose up -d db
+```
 
 Migrations are committed to the repository. Apply them with:
 
@@ -199,6 +230,13 @@ Scalingo, `bin/post_deploy.sh` runs `migrate` automatically after each deploy.
 
 ## ✅ Running the Tests
 
+The suite runs against PostgreSQL (pytest-django builds and drops a throwaway
+`test_maarifa` database), so start the database first:
+
+```
+docker compose up -d db
+```
+
 With the virtual environment active:
 
 ```
@@ -212,7 +250,8 @@ Or without activating it:
 ```
 
 The suite covers models, views, ownership isolation, CSRF and XSS handling,
-accessibility attributes, and the production/deployment configuration.
+accessibility attributes, the production/deployment configuration, and the
+PostgreSQL database configuration.
 
 Django's own checks:
 
@@ -231,8 +270,8 @@ The repository already contains the files Scalingo needs:
 * `Procfile` — starts gunicorn and runs the post-deploy hook.
 * `bin/post_deploy.sh` — applies migrations after each deploy.
 * `.python-version` — pins the Python build.
-* `ll_project/settings.py` — switches to PostgreSQL and WhiteNoise when
-  `STACK` contains `scalingo`.
+* `ll_project/settings.py` — reads PostgreSQL from `DATABASE_URL` in every
+  environment and switches to WhiteNoise when `STACK` contains `scalingo`.
 
 Steps:
 
@@ -292,11 +331,23 @@ Steps:
 
 ### `ImproperlyConfigured: DJANGO_SECRET_KEY is not set`
 
-Create `.env` from the template and set the key (see step 4 above).
+Create `.env` from the template and set the key (see step 5 above).
 
 ```
 cp .env.example .env
 ```
+
+### `connection to server at "127.0.0.1", port 5433 failed`
+
+The database is not running. Start it and retry:
+
+```
+docker compose up -d db
+docker compose ps
+```
+
+If port 5433 is taken by something else, publish on another host port and set
+`DATABASE_URL` (and `POSTGRES_PORT` for the container) to match.
 
 ### `ModuleNotFoundError: No module named 'X'`
 

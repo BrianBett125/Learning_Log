@@ -28,9 +28,11 @@ env/
 ENV/
 
 # --- Django ---
-*.log
+# No SQLite: every environment uses PostgreSQL (see docker-compose.yml). Ignore
+# any stray file an old command might still drop, so a binary never gets staged.
 db.sqlite3
 db.sqlite3-journal
+*.log
 /staticfiles/
 /media/
 

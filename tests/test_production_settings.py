@@ -6,9 +6,10 @@ interpreter with that environment. Each test below does exactly that, which is
 also what a real deploy does.
 
 These cover the claims Phase 9 makes: production hardening resolves the deploy
-checks, local development is unaffected, the Scalingo branch switches the
-database and static handling, and the deploy files the platform needs are
-present and correct.
+checks, local development is unaffected, the Scalingo branch switches static
+handling and requires TLS to the database, and the deploy files the platform
+needs are present and correct. Phase 1 adds the database assertions: every
+environment resolves to PostgreSQL from ``DATABASE_URL``.
 """
 
 import json
@@ -34,6 +35,7 @@ from django.conf import settings
 payload = {
     "DEBUG": settings.DEBUG,
     "DB_ENGINE": settings.DATABASES["default"]["ENGINE"],
+    "DB_OPTIONS": settings.DATABASES["default"].get("OPTIONS", {}),
     "MIDDLEWARE": settings.MIDDLEWARE,
     "STATICFILES_BACKEND": settings.STORAGES["staticfiles"]["BACKEND"],
     "STATIC_ROOT": str(settings.STATIC_ROOT),
@@ -124,14 +126,23 @@ def test_debug_false_turns_on_production_hardening():
     # Lets Django trust the host proxy's forwarded scheme, so SSL redirect
     # does not loop.
     assert data['SECURE_PROXY_SSL_HEADER'] == ['HTTP_X_FORWARDED_PROTO', 'https']
+    # Hardening keys off DEBUG alone, so TLS to the database is NOT forced here:
+    # only the Scalingo branch (below) requires it, and a local DEBUG=False run
+    # must still reach the non-TLS docker-compose database.
+    assert data['DB_OPTIONS'].get('sslmode') is None
 
 
 def test_local_development_is_unaffected():
-    """The hardening must not leak into the default DEBUG=True configuration."""
+    """The hardening must not leak into the default DEBUG=True configuration.
+
+    Local development runs on PostgreSQL too (Phase 1 removed the SQLite path),
+    but without the production-only TLS requirement.
+    """
     data = _settings(DJANGO_DEBUG='True')
 
     assert data['DEBUG'] is True
-    assert data['DB_ENGINE'] == 'django.db.backends.sqlite3'
+    assert data['DB_ENGINE'] == 'django.db.backends.postgresql'
+    assert data['DB_OPTIONS'].get('sslmode') is None
     assert data['SECURE_SSL_REDIRECT'] is False
     assert data['SESSION_COOKIE_SECURE'] is False
     assert data['CSRF_COOKIE_SECURE'] is False
@@ -147,6 +158,8 @@ def test_scalingo_environment_switches_to_postgres_and_whitenoise():
 
     assert data['DEBUG'] is False
     assert data['DB_ENGINE'] == 'django.db.backends.postgresql'
+    # Scalingo's PostgreSQL addon requires TLS to the database.
+    assert data['DB_OPTIONS'].get('sslmode') == 'require'
     assert 'whitenoise.middleware.WhiteNoiseMiddleware' in data['MIDDLEWARE']
     assert data['STATICFILES_BACKEND'] == (
         'whitenoise.storage.CompressedManifestStaticFilesStorage'

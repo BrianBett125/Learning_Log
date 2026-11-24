@@ -398,6 +398,79 @@ addon, `git-show` and postdeploy steps match the platform's documented flow.
 
 ---
 
+## 12. Phase 1 — PostgreSQL foundation and env split (2026-11-24)
+
+Goal (plan §4, Phase 1): the app runs on PostgreSQL locally, in tests, and in
+production, with no SQLite in the code path; `DATABASE_URL` drives the connection
+in every environment; a local PostgreSQL is one command away; the `pgvector`
+extension is present where available.
+
+**`ll_project/settings.py`.** `DATABASES` now reads `DATABASE_URL` everywhere via
+`dj_database_url.config(...)`, with the SQLite default deleted. When the variable
+is unset the default targets the docker-compose service
+(`postgres://maarifa:maarifa@127.0.0.1:5433/maarifa`). `conn_max_age=600` and
+`conn_health_checks=True` are on; `dj_database_url` is imported at module level.
+The `STACK=scalingo` block no longer overrides `DATABASES` (the DB is
+env-driven now); it still forces `DEBUG=False`, inserts WhiteNoise, sets the
+manifest static storage, and applies the `ALLOWED_HOSTS` fallback. The Scalingo
+branch keeps the one database setting it used to own:
+`DATABASES['default']['OPTIONS']['sslmode'] = 'require'`, so the platform
+deployment reaches PostgreSQL over TLS. It deliberately keys off `STACK`
+(platform), not `DEBUG`: the docker-compose database speaks no TLS, so a local
+`DJANGO_DEBUG=False` run (to exercise `check --deploy`) must still connect.
+
+**Env split.** Every environment difference is now an environment variable
+(`DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `DATABASE_URL`,
+`STACK`), matching P0's rule that infrastructure values live in env vars, not
+`Setting` rows and not code branches. `.env.example` documents `DATABASE_URL`
+with the same default the settings fall back to.
+
+**`docker-compose.yml` + `docker/postgres/init.sql`.** One service, `db`, on
+`pgvector/pgvector:pg17` — PostgreSQL 17 with the `vector` extension available.
+The host port is **5433**, published as `${POSTGRES_PORT:-5433}:5432`, chosen so
+a system PostgreSQL already bound to 5432 does not collide (this machine runs
+one). An `init.sql` runs `CREATE EXTENSION IF NOT EXISTS vector;` on first
+volume creation; a `pg_isready` healthcheck gates readiness. The compose service
+and the settings fallback are kept in lockstep by a gate test, so a fresh clone
+cannot start a container it then fails to reach.
+
+**`pytest.ini` change (recorded).** Added `addopts = --create-db
+--strict-markers`, with a comment stating that the suite runs on PostgreSQL and
+that the connection comes from `DATABASE_URL`. `--create-db` is pinned so the
+test database is rebuilt every run regardless of a developer's `PYTEST_ADDOPTS`
+(a reused database could hide a missing migration); `--strict-markers` fails on a
+mistyped marker instead of ignoring it. No DB options belong in `pytest.ini` —
+the URL is owned by the settings module.
+
+**`.gitignore`.** The `db.sqlite3` / `db.sqlite3-journal` rules are kept, as
+defence in depth: nothing in the code path writes those files any more, but an
+old command or a stray tool still could, and a binary must never reach a commit.
+The rules ignore a file, they do not reference a backend.
+
+**Tests.** New `tests/test_database_config.py` (9 tests): the loaded engine is
+PostgreSQL; no project `.py` references SQLite (AST scan for a `.sqlite3` string,
+a `sqlite://` URL, or a `sqlite3` import, prose excluded); a meta-test proves that
+scanner catches both a backend literal and a `dj-database-url` string;
+`DATABASE_URL` is honoured; the unset fallback matches the compose service's
+port, database, and user; the compose image is the pgvector one; `init.sql`
+enables the extension; and the extension is installable on the server running the
+suite (skipped, not failed, when the server lacks it).
+`tests/test_production_settings.py` was updated for the new truth (local
+development is PostgreSQL, not SQLite), asserts the Scalingo branch requires
+`sslmode=require`, and asserts a plain `DEBUG=False` deployment does not (so the
+local Docker database stays reachable).
+
+**Deterministic results**
+
+- `docker compose up -d db` → healthy; `pg_extension` lists `vector`.
+- Full suite on the Docker PostgreSQL: **153 passed** (144 existing + 9 new),
+  0 failed, 0 skipped — the pgvector test ran and passed on this server.
+- `manage.py check` → no issues. `manage.py check --deploy --fail-level WARNING`
+  with `DJANGO_DEBUG=False` and a strong key → **no issues (0 silenced)**.
+- No SQLite engine string remains in any project Python module (asserted).
+
+---
+
 ## How to run the reference
 
 ```bash

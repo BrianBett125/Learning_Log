@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -95,12 +96,18 @@ WSGI_APPLICATION = 'll_project.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+#
+# PostgreSQL in every environment: development, tests, and production. There is
+# no SQLite path. The connection string is read from DATABASE_URL — Scalingo
+# injects it automatically once the PostgreSQL addon exists. When DATABASE_URL
+# is unset, the default targets the docker-compose service (see
+# docker-compose.yml), so a fresh checkout runs after `docker compose up -d db`.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default='postgres://maarifa:maarifa@127.0.0.1:5433/maarifa',
+        conn_max_age=600,
+        conn_health_checks=True,
+    ),
 }
 
 
@@ -158,25 +165,23 @@ LOGIN_URL = 'accounts:login'
 # Scalingo deployment.
 #
 # Scalingo's Python buildpack sets STACK=scalingo-XX in the container. When that
-# is present we use the platform's PostgreSQL database, serve collected static
-# files through WhiteNoise, and stop showing debug pages. Locally STACK is unset,
-# so none of this applies and `runserver` behaves exactly as before.
+# is present we stop showing debug pages, serve collected static files through
+# WhiteNoise, and require TLS to the database. The database is configured from
+# DATABASE_URL for every environment (see the Database section above); Scalingo
+# injects that URL once the PostgreSQL addon exists. Locally STACK is unset, so
+# none of this applies and `runserver` behaves as before.
 #
 # This mirrors the configuration django-simple-deploy generates for Scalingo
 # (dsd_scalingo/templates/settings.py); see reference-inventory.md §4 and §11.
 if 'scalingo' in os.environ.get('STACK', ''):
-    import dj_database_url
-
     DEBUG = False
 
-    DATABASES = {
-        'default': dj_database_url.config(
-            env='DATABASE_URL',
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True,
-        ),
-    }
+    # The Scalingo PostgreSQL addon terminates TLS and requires it. Keep this
+    # inside the platform branch rather than keying off DEBUG: the
+    # docker-compose database used in development speaks no TLS, so a local
+    # `DJANGO_DEBUG=False` run (e.g. to exercise `check --deploy`) must not force
+    # `sslmode=require` onto a connection that cannot satisfy it.
+    DATABASES['default'].setdefault('OPTIONS', {})['sslmode'] = 'require'
 
     # WhiteNoise serves static files straight from the app process.
     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
